@@ -1,6 +1,7 @@
+
 from django.urls import path
 from .views import (
-    register, CustomTokenObtainPairView
+    register, CustomTokenObtainPairView, profile
 )
 
 urlpatterns = [
@@ -9,5 +10,10 @@ urlpatterns = [
         'token/',
         CustomTokenObtainPairView.as_view(),
         name='token_obtain_pair'
+    ),
+    path(
+        "profile/",
+        profile,
+        name="profile"
     )
 ]

@@ -28,3 +28,13 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
             "role": self.user.role,
         }
         return data
+
+class ProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = [
+            "id",
+            "username",
+            "email",
+            "role",
+        ]

@@ -7,6 +7,10 @@ class Product(models.Model):
         ('inactive', 'Inactive'),
         ('sold_out', 'Sold Out'),
     )
+    CONDITION_CHOICES = (
+        ("new", "Baru"),
+        ("used", "Bekas"),
+    )
     seller = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -16,6 +20,11 @@ class Product(models.Model):
     price = models.IntegerField()
     description = models.TextField()
     stock = models.PositiveBigIntegerField(default=0)
+    condition = models.CharField(
+        max_length=10,
+        choices=CONDITION_CHOICES,
+        default='new'
+    )
     image = models.ImageField(
         upload_to='products/',
         blank=True,

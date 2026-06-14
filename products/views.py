@@ -4,38 +4,74 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from .models import Product
 from .serializers import ProductSerializer
-from core.pagination import DefaultPagination
 from django.db.models import Q
+from rest_framework.pagination import PageNumberPagination
+from core.pagination import DefaultPagination
+from utils.api_response import success_response
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def product_list(request):
     products = Product.objects.all()
-    pagination = DefaultPagination()
-    paginated_products = pagination.paginate_queryset(products, request)
+    stock_filter = request.GET.get("stock_filter")
+    condition = request.GET.get("condition")
+    
+    if stock_filter == "in_stock":
+        products = products.filter(stock__gt=0)
+    elif stock_filter == "out_of_stock":
+        products = products.filter(stock=0)
+    if condition:
+        products = products.filter(condition=condition)
+
+    search = request.GET.get('search')
+    if search:
+        products = products.filter(
+            Q(name__icontains=search)
+        )
+    ordering = request.GET.get("ordering", "latest")
+    allowed_ordering = {
+        "latest": "-created_at",
+        "price_asc": "price",
+        "price_desc": "-price",
+        "name_asc": "name",
+        "name_desc": "-name",
+    }
+    products = products.order_by(
+        allowed_ordering.get(ordering, "-created_at")
+    )
+    paginator = PageNumberPagination()
+    paginator.page_size = 2
+    result_page = paginator.paginate_queryset(
+        products,
+        request
+    )
     serializer = ProductSerializer(
-        paginated_products,
+        result_page,
         many=True
     )
-    return pagination.get_paginated_response({
-        "status": "success",
-        "data": serializer.data
-    }, status=200)
+    paginated_data = {
+        "count": paginator.page.paginator.count,
+        "next": paginator.get_next_link(),
+        "previous": paginator.get_previous_link(),
+        "results": serializer.data
+    }
+    return success_response(
+        data=paginated_data,
+        message="Products fetched successfully"
+    )
 
-
-@api_view(['GET'])
+@api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def product_detail(request, pk):
     product = get_object_or_404(
-        Product,
+        Product.objects.select_related("seller"),
         pk=pk
     )
     serializer = ProductSerializer(product)
-    return Response({
-        "status": "success",
-        "data": serializer.data
-    }, status=200)
-
+    return success_response(
+        data=serializer.data,
+        message="Product fetched successfully"
+    )
 
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
@@ -48,18 +84,27 @@ def seller_products(request):
         products = Product.objects.filter(
             seller=request.user
         )
+
         search = request.GET.get('search')
         if search:
             products = products.filter(
                 Q(name__icontains=search)
             )
-        status = request.GET.get('status')
-        print(request.GET)
-        print(status)       
-        if status:
+
+        status_filter = request.GET.get('status')       
+        if status_filter:
             products = products.filter(
-                status=status
+                status=status_filter
             )
+        ordering = request.GET.get('ordering')
+
+        allowed_ordering = ['price', '-price', 'stock', '-stock']
+
+        if ordering in allowed_ordering:
+            products = products.order_by(ordering)
+        else:
+            products = products.order_by('-id')
+        
         pagination = DefaultPagination()
         paginated_products = pagination.paginate_queryset(
             products,
