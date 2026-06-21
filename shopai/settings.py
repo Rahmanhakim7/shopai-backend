@@ -30,6 +30,9 @@ INSTALLED_APPS = [
     'products',
     'users',
     'carts',
+    'wishlist',
+    'orders',
+    'reviews',
     "corsheaders",
     "django_filters"
 ]
