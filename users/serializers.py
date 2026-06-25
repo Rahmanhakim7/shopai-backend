@@ -9,6 +9,21 @@ class RegisterSerializer(serializers.ModelSerializer):
         extra_kwargs = {
             'password': {'write_only': True}
         }
+    
+    def validate_username(self, value):
+        if User.objects.filter(username=value).exists():
+            raise serializers.ValidationError(
+                "Username sudah digunakan"
+            )
+        return value
+
+    def validate_email(self, value):
+        if User.objects.filter(email=value).exists():
+            raise serializers.ValidationError(
+                "Email sudah digunakan"
+            )
+        return value
+    
     def create(self, validated_data):
         user = User.objects.create_user(
             username=validated_data['username'],
@@ -28,6 +43,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
             "role": self.user.role,
         }
         return data
+    
 
 class ProfileSerializer(serializers.ModelSerializer):
     class Meta:

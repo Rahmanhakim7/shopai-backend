@@ -2,12 +2,12 @@ from django.db import transaction
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from products.models import Product
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.generics import (
     ListAPIView,
     RetrieveAPIView,
 )
-from carts.models import CartItem
 from .models import (
     Order,
     SellerOrder,
@@ -32,52 +32,62 @@ class CreateOrderAPIView(APIView):
         serializer.is_valid(
             raise_exception=True
         )
-        cart_item_ids = (
+        items_data = (
             serializer
-            .validated_data["cart_item_ids"]
+            .validated_data["items"]
         )
-        cart_items = (
-            CartItem.objects
-            .select_related(
-                "product",
-                "product__seller"
-            )
-            .select_for_update()
-            .filter(
-                id__in=cart_item_ids,
-                cart__user=request.user
-            )
-        )
-        if not cart_items.exists():
-            return Response(
-                {
-                    "detail":
-                    "Cart item tidak ditemukan"
-                },
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        for item in cart_items:
-            if item.quantity > item.product.stock:
+        checkout_items = []
+        for item_data in items_data:
+            try:
+                product = (
+                    Product.objects
+                    .select_related(
+                        "seller"
+                    )
+                    .select_for_update()
+                    .get(
+                        id=item_data["product_id"]
+                    )
+                )
+            except Product.DoesNotExist:
                 return Response(
                     {
                         "detail":
-                        f"Stok {item.product.name} tidak mencukupi"
+                        f"Produk {item_data['product_id']} tidak ditemukan"
+                    },
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            quantity = item_data["quantity"]
+            checkout_items.append(
+                {
+                    "product": product,
+                    "quantity": quantity,
+                    "price": product.price
+                }
+            )
+
+        for item in checkout_items:
+            if item["quantity"] > item["product"].stock:
+                return Response(
+                    {
+                        "detail":
+                        f"Stok {item['product'].name} tidak mencukupi"
                     },
                     status=status.HTTP_400_BAD_REQUEST
                 )
         total_amount = sum(
-            item.quantity *
-            item.price_at_added
-            for item in cart_items
+            item["quantity"] *
+            item["price"]
+            for item in checkout_items
         )
         order = Order.objects.create(
             buyer=request.user,
             total_amount=total_amount
         )
         seller_groups = {}
-        for item in cart_items:
+        for item in checkout_items:
             seller_id = (
-                item.product.seller_id
+                item["product"].seller_id
             )
             if seller_id not in seller_groups:
                 seller_groups[seller_id] = []
@@ -86,53 +96,47 @@ class CreateOrderAPIView(APIView):
             )
         for seller_id, items in seller_groups.items():
             seller_total = sum(
-                item.quantity *
-                item.price_at_added
+                item["quantity"] *
+                item["price"]
                 for item in items
             )
             seller_order = SellerOrder.objects.create(
                 order=order,
-                seller=items[0].product.seller,
+                seller=items[0]["product"].seller,
                 subtotal=seller_total
             )
             order_items = []
-            for item in items:
+            for item in checkout_items:
                 subtotal = (
-                    item.quantity *
-                    item.price_at_added
+                    item["quantity"] *
+                    item["price"]
                 )
                 order_items.append(
                     OrderItem(
                         seller_order=seller_order,
-                        product=item.product,
-                        quantity=item.quantity,
-                        price=item.price_at_added,
+                        product=item["product"],
+                        quantity=item["quantity"],
+                        price=item["price"],
                         subtotal=subtotal
                     )
                 )
             OrderItem.objects.bulk_create(
                 order_items
             )
-        for item in cart_items:
-            product = item.product
-            product.stock -= item.quantity
+        for item in checkout_items:
+            product = item["product"]
+            product.stock -= item["quantity"]
+
             if product.stock <= 0:
                 product.stock = 0
                 product.status = "sold_out"
-                product.save(
-                    update_fields=[
-                        "stock",
-                        "status"
-                    ]
-                )
-            else:
-                product.save(
-                    update_fields=[
-                        "stock"
 
-                    ]
-                )
-        cart_items.delete()
+            product.save(
+                update_fields=[
+                    "stock",
+                    "status"
+                ]
+            )
         return Response(
             {
                 "message":
@@ -275,7 +279,6 @@ class UpdateSellerOrderStatusAPIView(
             "processed",
             "shipped",
             "completed",
-            "cancelled",
         ]
 
         if new_status not in valid_statuses:

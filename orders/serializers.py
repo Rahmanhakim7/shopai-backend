@@ -13,6 +13,8 @@ class OrderItemSerializer(serializers.ModelSerializer):
         source="product.image",
         read_only=True
     )
+    has_review = serializers.SerializerMethodField()
+    review_rating = serializers.SerializerMethodField()
     class Meta:
         model = OrderItem
         fields = [
@@ -23,7 +25,17 @@ class OrderItemSerializer(serializers.ModelSerializer):
             "quantity",
             "price",
             "subtotal",
+            "has_review",
+            "review_rating"
         ]
+    
+    def get_has_review(self, obj):
+        return hasattr(obj, "review")
+
+    def get_review_rating(self, obj):
+        if hasattr(obj, "review"):
+            return obj.review.rating
+        return None
 
 class SellerOrderSerializer(serializers.ModelSerializer):
     seller_name = serializers.CharField(
@@ -63,8 +75,18 @@ class OrderSerializer(serializers.ModelSerializer):
             "seller_orders",
         ]
 
-class CreateOrderSerializer(serializers.Serializer):
-    cart_item_ids = serializers.ListField(
-        child=serializers.IntegerField(),
-        allow_empty=False
+class CheckoutItemSerializer(
+    serializers.Serializer
+):
+    product_id = serializers.IntegerField()
+    quantity = serializers.IntegerField(
+        min_value=1
+    )
+
+
+class CreateOrderSerializer(
+    serializers.Serializer
+):
+    items = CheckoutItemSerializer(
+        many=True
     )
