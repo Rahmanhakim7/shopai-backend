@@ -8,11 +8,9 @@ class ProductSerializer(serializers.ModelSerializer):
         source="seller.username",
         read_only=True
     )
-
     average_rating = serializers.SerializerMethodField()
     review_count = serializers.SerializerMethodField()
     wishlist_count = serializers.SerializerMethodField()
-
     class Meta:
         model = Product
         fields = "__all__"
