@@ -8,7 +8,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 from pathlib import Path
 from datetime import timedelta
-import os
+from decouple import config
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -120,11 +120,11 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 STATIC_URL = 'static/'
-GOOGLE_CLIENT_ID = "41198270240-2l9a61m7js2ov80csr1imld1de9pe7ma.apps.googleusercontent.com"
-EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_HOST = "smtp.gmail.com"
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = "hakimrahman261@gmail.com"
-EMAIL_HOST_PASSWORD = "ezkfbodvolkzjfdp"
-DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+GOOGLE_CLIENT_ID = config("GOOGLE_CLIENT_ID")
+EMAIL_BACKEND = config("EMAIL_BACKEND")
+EMAIL_HOST = config("EMAIL_HOST")
+EMAIL_PORT = config("EMAIL_PORT", cast=int)
+EMAIL_USE_TLS = config("EMAIL_USE_TLS", cast=bool)
+EMAIL_HOST_USER = config("EMAIL_HOST_USER")
+EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD")
+DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL")
