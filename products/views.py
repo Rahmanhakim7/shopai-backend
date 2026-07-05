@@ -8,21 +8,22 @@ from django.db.models import Q
 from rest_framework.pagination import PageNumberPagination
 from core.pagination import DefaultPagination
 from utils.api_response import success_response
+from shopai.permissions import IsBuyer,IsSeller
+
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsBuyer])
 def product_list(request):
     products = Product.objects.all()
     stock_filter = request.GET.get("stock_filter")
     condition = request.GET.get("condition")
-    
+
     if stock_filter == "in_stock":
         products = products.filter(stock__gt=0)
     elif stock_filter == "out_of_stock":
         products = products.filter(stock=0)
     if condition:
         products = products.filter(condition=condition)
-
     search = request.GET.get('search')
     if search:
         products = products.filter(
@@ -61,7 +62,7 @@ def product_list(request):
     )
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsBuyer])
 def product_detail(request, pk):
     product = get_object_or_404(
         Product.objects.select_related("seller"),
@@ -74,37 +75,28 @@ def product_detail(request, pk):
     )
 
 @api_view(['GET', 'POST'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsSeller])
 def seller_products(request):
-    if request.user.role != 'seller':
-        return Response({
-            "message": "Hanya seller yang bisa mengakses halaman ini"
-        }, status=403)
     if request.method == 'GET':
         products = Product.objects.filter(
             seller=request.user
         )
-
         search = request.GET.get('search')
         if search:
             products = products.filter(
                 Q(name__icontains=search)
             )
-
         status_filter = request.GET.get('status')       
         if status_filter:
             products = products.filter(
                 status=status_filter
             )
         ordering = request.GET.get('ordering')
-
         allowed_ordering = ['price', '-price', 'stock', '-stock']
-
         if ordering in allowed_ordering:
             products = products.order_by(ordering)
         else:
             products = products.order_by('-id')
-        
         pagination = DefaultPagination()
         paginated_products = pagination.paginate_queryset(
             products,
@@ -138,16 +130,13 @@ def seller_products(request):
         }, status=400)
 
 @api_view(['GET', 'PUT', 'DELETE'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsSeller])
 def seller_product_detail(request, pk):
     product = get_object_or_404(
         Product,
-        pk=pk
+        pk=pk,
+        seller=request.user
     )
-    if request.user != product.seller:
-        return Response({
-            "message": "Kamu bukan pemilik produk ini"
-        }, status=403)
     if request.method == 'GET':
         serializer = ProductSerializer(product)
         return Response({

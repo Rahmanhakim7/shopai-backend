@@ -13,16 +13,17 @@ from .models import (
     SellerOrder,
     OrderItem,
 )
-
 from .serializers import (
     CreateOrderSerializer,
     OrderSerializer,
     SellerOrderSerializer
 )
+from shopai.permissions import IsBuyer,IsSeller
 
 class CreateOrderAPIView(APIView):
     permission_classes = [
-        IsAuthenticated
+        IsAuthenticated,
+        IsBuyer
     ]
     @transaction.atomic
     def post(self, request):
@@ -153,7 +154,8 @@ class BuyerOrderListAPIView(
 ):
     serializer_class = OrderSerializer
     permission_classes = [
-        IsAuthenticated
+        IsAuthenticated,
+        IsBuyer
     ]
 
     def get_queryset(self):
@@ -178,7 +180,8 @@ class BuyerOrderDetailAPIView(
 ):
     serializer_class = OrderSerializer
     permission_classes = [
-        IsAuthenticated
+        IsAuthenticated,
+        IsBuyer
     ]
     def get_queryset(self):
         return (
@@ -200,7 +203,8 @@ class SellerOrderListAPIView(
 ):
     serializer_class = SellerOrderSerializer
     permission_classes = [
-        IsAuthenticated
+        IsAuthenticated,
+        IsSeller
     ]
 
     def get_queryset(self):
@@ -226,7 +230,8 @@ class SellerOrderDetailAPIView(
 ):
     serializer_class = SellerOrderSerializer
     permission_classes = [
-        IsAuthenticated
+        IsAuthenticated,
+        IsSeller
     ]
 
     def get_queryset(self):
@@ -250,7 +255,8 @@ class UpdateSellerOrderStatusAPIView(
     APIView
 ):
     permission_classes = [
-        IsAuthenticated
+        IsAuthenticated,
+        IsSeller    
     ]
 
     def patch(self, request, pk):

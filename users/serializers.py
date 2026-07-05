@@ -2,14 +2,24 @@ from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from .models import User
 
+
+
 class RegisterSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['username', 'email', 'password', 'role']
+        fields = [
+            "username",
+            "email",
+            "password",
+            "role",
+            "profile_image",
+        ]
         extra_kwargs = {
-            'password': {'write_only': True}
+            "password": {
+                "write_only": True
+            }
         }
-    
+
     def validate_username(self, value):
         if User.objects.filter(username=value).exists():
             raise serializers.ValidationError(
@@ -23,28 +33,36 @@ class RegisterSerializer(serializers.ModelSerializer):
                 "Email sudah digunakan"
             )
         return value
-    
-    def create(self, validated_data):
-        user = User.objects.create_user(
-            username=validated_data['username'],
-            email=validated_data['email'],
-            password=validated_data['password'],
-            role=validated_data['role']
-        )
-        return user
 
+    def create(self, validated_data):
+        profile_image = validated_data.pop("profile_image", None)
+        user = User.objects.create_user(
+            username=validated_data["username"],
+            email=validated_data["email"],
+            password=validated_data["password"],
+            role=validated_data["role"],
+        )
+        if profile_image:
+            user.profile_image = profile_image
+            user.save()
+        return user
+    
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
         data = super().validate(attrs)
+
         data["user"] = {
             "id": self.user.id,
             "username": self.user.username,
             "email": self.user.email,
             "role": self.user.role,
+            "profile_image": (
+                self.user.profile_image.url
+                if self.user.profile_image
+                else None
+            ),
         }
         return data
-    
-
 class ProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
@@ -53,4 +71,8 @@ class ProfileSerializer(serializers.ModelSerializer):
             "username",
             "email",
             "role",
+            "profile_image",
         ]
+
+class ForgotPasswordSerializer(serializers.Serializer):
+    email = serializers.EmailField()

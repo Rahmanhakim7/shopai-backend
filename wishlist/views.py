@@ -13,9 +13,10 @@ from .serializers import (
     WishlistSerializer,
     AddWishlistSerializer,
 )
+from shopai.permissions import IsBuyer
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsBuyer])
 def get_wishlist(request):
     wishlists = Wishlist.objects.filter(
         user=request.user
@@ -30,11 +31,10 @@ def get_wishlist(request):
     return Response(serializer.data)
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsBuyer])
 def add_to_wishlist(request):
     serializer = AddWishlistSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
-
     product = get_object_or_404(
         Product,
         id=serializer.validated_data["product_id"]
@@ -52,13 +52,12 @@ def add_to_wishlist(request):
         user=request.user,
         product=product
     )
-
     return Response(
         {"message": "Wishlist added"}
     )
 
 @api_view(["DELETE"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsBuyer])
 def remove_wishlist(
     request,
     product_id
