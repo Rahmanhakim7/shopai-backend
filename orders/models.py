@@ -24,6 +24,7 @@ class SellerOrder(models.Model):
         ("processed", "Processed"),
         ("shipped", "Shipped"),
         ("completed", "Completed"),
+        ("cancelled", "Cancelled"),
     ]
     order = models.ForeignKey(
         Order,

@@ -222,11 +222,21 @@ class CancelOrderAPIView(APIView):
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
+        if order.seller_orders.exclude(status="pending").exists():
+            return Response(
+                {
+                    "detail": "Pesanan tidak dapat dibatalkan karena sudah diproses."
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         payment.status = Payment.Status.CANCELLED
         payment.save(
             update_fields=[
                 "status",
             ]
+        )
+        order.seller_orders.update(
+            status="cancelled"
         )
         return Response(
             {
