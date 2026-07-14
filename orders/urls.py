@@ -3,9 +3,13 @@ from .views import (
     CreateOrderAPIView,
     BuyerOrderListAPIView,
     BuyerOrderDetailAPIView,
+    CancelOrderAPIView,
 
     SellerOrderListAPIView,
     SellerOrderDetailAPIView,
+    ShipSellerOrderAPIView,
+    CompleteSellerOrderAPIView,
+    ProcessSellerOrderAPIView,
     UpdateSellerOrderStatusAPIView,
 )
 
@@ -29,6 +33,12 @@ urlpatterns = [
     ),
 
     path(
+        "orders/<int:pk>/cancel/",
+        CancelOrderAPIView.as_view(),
+        name="cancel-order"
+    ),
+
+    path(
         "seller/orders/",
         SellerOrderListAPIView.as_view(),
         name="seller-order-list"
@@ -38,6 +48,22 @@ urlpatterns = [
         "seller/orders/<int:pk>/",
         SellerOrderDetailAPIView.as_view(),
         name="seller-order-detail"
+    ),
+
+    path(
+        "seller/orders/<int:pk>/process/",
+        ProcessSellerOrderAPIView.as_view(),
+    ),
+
+    path(
+        "seller/orders/<int:pk>/ship/",
+        ShipSellerOrderAPIView.as_view(),
+    ),
+
+    path(
+        "seller/orders/<int:pk>/complete/",
+        CompleteSellerOrderAPIView.as_view(),
+        name="seller-order-complete",
     ),
 
     path(

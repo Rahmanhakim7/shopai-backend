@@ -20,7 +20,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-8sx%pbe5vb8p-#2q04_c1otvhnad231cpv&_m#@5776y2d)g!x'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["*"]
 # Application definition
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -36,6 +36,7 @@ INSTALLED_APPS = [
     'wishlist',
     'orders',
     'reviews',
+    'payments',
     "corsheaders",
     "django_filters"
 ]
@@ -72,6 +73,23 @@ AUTH_USER_MODEL = 'users.User'
 ROOT_URLCONF = 'shopai.urls'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+
+# ==============================
+# Midtrans Configuration
+# ==============================
+MIDTRANS_SERVER_KEY = config(
+    "MIDTRANS_SERVER_KEY"
+)
+MIDTRANS_CLIENT_KEY = config(
+    "MIDTRANS_CLIENT_KEY"
+)
+MIDTRANS_IS_PRODUCTION = config(
+    "MIDTRANS_IS_PRODUCTION",
+    cast=bool,
+    default=False
+)
+
+from django.conf import settings
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
@@ -119,6 +137,7 @@ USE_I18N = True
 USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
+
 STATIC_URL = 'static/'
 GOOGLE_CLIENT_ID = config("GOOGLE_CLIENT_ID")
 EMAIL_BACKEND = config("EMAIL_BACKEND")

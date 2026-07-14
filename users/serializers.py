@@ -2,8 +2,6 @@ from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from .models import User
 
-
-
 class RegisterSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
@@ -73,6 +71,35 @@ class ProfileSerializer(serializers.ModelSerializer):
             "role",
             "profile_image",
         ]
+        read_only_fields = [
+            "email",
+            "role",
+        ]
+    def validate_username(self, value):
+        user = self.instance
+        if User.objects.exclude(pk=user.pk).filter(username=value).exists():
+            raise serializers.ValidationError(
+                "Username sudah digunakan."
+            )
+        return value
+
+    def validate_profile_image(self, value):
+        if value:
+            if value.size > 2 * 1024 * 1024:
+                raise serializers.ValidationError(
+                    "Ukuran gambar maksimal 2 MB."
+                )
+            allowed_types = [
+                "image/jpeg",
+                "image/png",
+                "image/jpg",
+                "image/webp",
+            ]
+            if value.content_type not in allowed_types:
+                raise serializers.ValidationError(
+                    "Format gambar harus JPG, JPEG, PNG atau WEBP."
+                )
+        return value
 
 class ForgotPasswordSerializer(serializers.Serializer):
     email = serializers.EmailField()

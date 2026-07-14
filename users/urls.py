@@ -35,5 +35,5 @@ urlpatterns = [
         "reset-password/",
         reset_password,
         name="reset_password",
-),
+    ),
 ]

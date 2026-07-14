@@ -19,6 +19,9 @@ from .serializers import (
     SellerOrderSerializer
 )
 from shopai.permissions import IsBuyer,IsSeller
+from django.shortcuts import get_object_or_404
+from payments.models import Payment
+import uuid;
 
 class CreateOrderAPIView(APIView):
     permission_classes = [
@@ -85,6 +88,12 @@ class CreateOrderAPIView(APIView):
             buyer=request.user,
             total_amount=total_amount
         )
+        Payment.objects.create(
+            order=order,
+            transaction_id=str(uuid.uuid4()),
+            amount=total_amount,
+            status=Payment.Status.PENDING,
+        )
         seller_groups = {}
         for item in checkout_items:
             seller_id = (
@@ -107,7 +116,7 @@ class CreateOrderAPIView(APIView):
                 subtotal=seller_total
             )
             order_items = []
-            for item in checkout_items:
+            for item in items:
                 subtotal = (
                     item["quantity"] *
                     item["price"]
@@ -123,20 +132,6 @@ class CreateOrderAPIView(APIView):
                 )
             OrderItem.objects.bulk_create(
                 order_items
-            )
-        for item in checkout_items:
-            product = item["product"]
-            product.stock -= item["quantity"]
-
-            if product.stock <= 0:
-                product.stock = 0
-                product.status = "sold_out"
-
-            product.save(
-                update_fields=[
-                    "stock",
-                    "status"
-                ]
             )
         return Response(
             {
@@ -157,7 +152,6 @@ class BuyerOrderListAPIView(
         IsAuthenticated,
         IsBuyer
     ]
-
     def get_queryset(self):
         return (
             Order.objects
@@ -198,6 +192,50 @@ class BuyerOrderDetailAPIView(
             )
         )
 
+class CancelOrderAPIView(APIView):
+    permission_classes = [
+        IsAuthenticated,
+        IsBuyer,
+    ]
+    @transaction.atomic
+    def post(self, request, pk):
+        order = get_object_or_404(
+            Order,
+            pk=pk,
+            buyer=request.user,
+        )
+        payment = getattr(order, "payment", None)
+        if payment is None:
+            return Response(
+                {
+                    "detail": "Data pembayaran tidak ditemukan."
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        if payment.status != Payment.Status.PENDING:
+            return Response(
+                {
+                    "detail": (
+                        "Hanya pesanan yang menunggu pembayaran "
+                        "yang dapat dibatalkan."
+                    )
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        payment.status = Payment.Status.CANCELLED
+        payment.save(
+            update_fields=[
+                "status",
+            ]
+        )
+        return Response(
+            {
+                "message": "Pesanan berhasil dibatalkan.",
+                "payment_status": payment.status,
+            },
+            status=status.HTTP_200_OK,
+        )
+
 class SellerOrderListAPIView(
     ListAPIView
 ):
@@ -206,7 +244,6 @@ class SellerOrderListAPIView(
         IsAuthenticated,
         IsSeller
     ]
-
     def get_queryset(self):
         return (
             SellerOrder.objects
@@ -233,7 +270,6 @@ class SellerOrderDetailAPIView(
         IsAuthenticated,
         IsSeller
     ]
-
     def get_queryset(self):
         return (
             SellerOrder.objects
@@ -251,6 +287,143 @@ class SellerOrderDetailAPIView(
             )
         )
 
+class ProcessSellerOrderAPIView(APIView):
+    permission_classes = [
+        IsAuthenticated,
+        IsSeller,
+    ]
+    @transaction.atomic
+    def post(self, request, pk):
+        seller_order = get_object_or_404(
+            SellerOrder.objects.select_related("order", "order__payment"),
+            pk=pk,
+            seller=request.user,
+        )
+        payment = seller_order.order.payment
+        if payment.status != Payment.Status.PAID:
+            return Response(
+                {
+                    "detail": "Pesanan belum dibayar."
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if seller_order.status != "pending":
+            return Response(
+                {
+                    "detail": "Pesanan sudah diproses."
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        seller_order.status = "processed"
+        seller_order.save(
+            update_fields=[
+                "status",
+            ]
+        )
+        return Response(
+            {
+                "message": "Pesanan berhasil diproses.",
+                "status": seller_order.status,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+class ShipSellerOrderAPIView(APIView):
+    permission_classes = [
+        IsAuthenticated,
+        IsSeller,
+    ]
+    @transaction.atomic
+    def post(self, request, pk):
+        seller_order = get_object_or_404(
+            SellerOrder.objects.select_related(
+                "order",
+                "order__payment",
+            ),
+            pk=pk,
+            seller=request.user,
+        )
+        payment = seller_order.order.payment
+        if payment.status != Payment.Status.PAID:
+            return Response(
+                {
+                    "detail": "Pesanan belum dibayar."
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if seller_order.status != "processed":
+            return Response(
+                {
+                    "detail": "Pesanan belum diproses."
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        seller_order.status = "shipped"
+        seller_order.save(
+            update_fields=[
+                "status",
+            ]
+        )
+        return Response(
+            {
+                "message": "Pesanan berhasil dikirim.",
+                "status": seller_order.status,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+class CompleteSellerOrderAPIView(APIView):
+    permission_classes = [
+        IsAuthenticated,
+        IsBuyer,
+    ]
+    @transaction.atomic
+    def post(self, request, pk):
+        seller_order = get_object_or_404(
+            SellerOrder.objects.select_related(
+                "order",
+                "order__buyer",
+                "order__payment",
+            ),
+            pk=pk,
+        )
+        if seller_order.order.buyer != request.user:
+            return Response(
+                {
+                    "detail": "Anda tidak memiliki akses ke pesanan ini."
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        payment = seller_order.order.payment
+        if payment.status != Payment.Status.PAID:
+            return Response(
+                {
+                    "detail": "Pesanan belum dibayar."
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if seller_order.status != "shipped":
+            return Response(
+                {
+                    "detail": "Pesanan belum dikirim."
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        seller_order.status = "completed"
+        seller_order.save(
+            update_fields=[
+                "status",
+            ]
+        )
+        return Response(
+            {
+                "message": "Pesanan berhasil diselesaikan.",
+                "status": seller_order.status,
+            },
+            status=status.HTTP_200_OK,
+        )
+
 class UpdateSellerOrderStatusAPIView(
     APIView
 ):
@@ -258,7 +431,6 @@ class UpdateSellerOrderStatusAPIView(
         IsAuthenticated,
         IsSeller    
     ]
-
     def patch(self, request, pk):
         try:
             seller_order = (
@@ -275,18 +447,15 @@ class UpdateSellerOrderStatusAPIView(
                 },
                 status=status.HTTP_404_NOT_FOUND
             )
-
         new_status = request.data.get(
             "status"
         )
-
         valid_statuses = [
             "pending",
             "processed",
             "shipped",
             "completed",
         ]
-
         if new_status not in valid_statuses:
             return Response(
                 {
@@ -295,10 +464,8 @@ class UpdateSellerOrderStatusAPIView(
                 },
                 status=status.HTTP_400_BAD_REQUEST
             )
-
         seller_order.status = new_status
         seller_order.save()
-
         return Response(
             {
                 "message":

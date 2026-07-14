@@ -50,12 +50,17 @@ class SellerOrderSerializer(serializers.ModelSerializer):
         many=True,
         read_only=True
     )
+    payment_status = serializers.CharField(
+        source="order.payment.status",
+        read_only=True
+    )
     class Meta:
         model = SellerOrder
         fields = [
             "id",
             "buyer_name",
             "seller_name",
+            "payment_status",
             "status",
             "subtotal",
             "created_at",
@@ -66,10 +71,15 @@ class OrderSerializer(serializers.ModelSerializer):
         many=True,
         read_only=True
     )
+    payment_status = serializers.CharField(
+        source="payment.status",
+        read_only=True,
+    )
     class Meta:
         model = Order
         fields = [
             "id",
+            "payment_status",
             "total_amount",
             "created_at",
             "seller_orders",

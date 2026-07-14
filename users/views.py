@@ -52,14 +52,41 @@ def register(request):
         }, status=201)
     return Response(serializer.errors, status=400)
 
-@api_view(["GET"])
+@api_view(["GET", "PATCH"])
 @permission_classes([IsAuthenticated])
 def profile(request):
-    serializer = ProfileSerializer(request.user)
-    return Response({
-        "message": "Profile berhasil diambil",
-        "data": serializer.data
-    })
+    if request.method == "GET":
+        serializer = ProfileSerializer(request.user)
+        return Response({
+            "message": "Profile berhasil diambil",
+            "data": serializer.data
+        })
+    serializer = ProfileSerializer(
+        request.user,
+        data=request.data,
+        partial=True
+    )
+    if serializer.is_valid():
+        old_image = None
+        if (
+            "profile_image" in request.FILES
+            and request.user.profile_image
+        ):
+            old_image = request.user.profile_image.path
+        serializer.save()
+        if old_image and os.path.isfile(old_image):
+            try:
+                os.remove(old_image)
+            except Exception:
+                pass
+        return Response({
+            "message": "Profile berhasil diperbarui",
+            "data": serializer.data
+        })
+    return Response(
+        serializer.errors,
+        status=status.HTTP_400_BAD_REQUEST
+    )
 
 
 @api_view(["POST"])
