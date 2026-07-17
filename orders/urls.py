@@ -10,7 +10,6 @@ from .views import (
     ShipSellerOrderAPIView,
     CompleteSellerOrderAPIView,
     ProcessSellerOrderAPIView,
-    UpdateSellerOrderStatusAPIView,
 )
 
 urlpatterns = [
@@ -64,11 +63,5 @@ urlpatterns = [
         "seller/orders/<int:pk>/complete/",
         CompleteSellerOrderAPIView.as_view(),
         name="seller-order-complete",
-    ),
-
-    path(
-        "seller/orders/<int:pk>/status/",
-        UpdateSellerOrderStatusAPIView.as_view(),
-        name="seller-order-status"
     ),
 ]

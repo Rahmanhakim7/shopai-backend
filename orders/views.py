@@ -21,6 +21,13 @@ from .serializers import (
 from shopai.permissions import IsBuyer,IsSeller
 from django.shortcuts import get_object_or_404
 from payments.models import Payment
+from notifications.services import (
+    notify_new_order,
+    notify_order_processed,
+    notify_order_shipped,
+    notify_order_completed,
+    notify_order_cancelled,
+)
 import uuid;
 
 class CreateOrderAPIView(APIView):
@@ -133,6 +140,9 @@ class CreateOrderAPIView(APIView):
             OrderItem.objects.bulk_create(
                 order_items
             )
+            notify_new_order(
+                seller_order
+            )
         return Response(
             {
                 "message":
@@ -238,6 +248,13 @@ class CancelOrderAPIView(APIView):
         order.seller_orders.update(
             status="cancelled"
         )
+        for seller_order in order.seller_orders.all():
+            notify_order_cancelled(
+                order=order,
+                seller_order=seller_order,
+                recipient=seller_order.seller,
+                cancelled_by="buyer",
+            )
         return Response(
             {
                 "message": "Pesanan berhasil dibatalkan.",
@@ -330,6 +347,9 @@ class ProcessSellerOrderAPIView(APIView):
                 "status",
             ]
         )
+        notify_order_processed(
+            seller_order
+        )
         return Response(
             {
                 "message": "Pesanan berhasil diproses.",
@@ -374,6 +394,9 @@ class ShipSellerOrderAPIView(APIView):
             update_fields=[
                 "status",
             ]
+        )
+        notify_order_shipped(
+            seller_order
         )
         return Response(
             {
@@ -426,61 +449,13 @@ class CompleteSellerOrderAPIView(APIView):
                 "status",
             ]
         )
+        notify_order_completed(
+            seller_order
+        )
         return Response(
             {
                 "message": "Pesanan berhasil diselesaikan.",
                 "status": seller_order.status,
             },
             status=status.HTTP_200_OK,
-        )
-
-class UpdateSellerOrderStatusAPIView(
-    APIView
-):
-    permission_classes = [
-        IsAuthenticated,
-        IsSeller    
-    ]
-    def patch(self, request, pk):
-        try:
-            seller_order = (
-                SellerOrder.objects.get(
-                    pk=pk,
-                    seller=request.user
-                )
-            )
-        except SellerOrder.DoesNotExist:
-            return Response(
-                {
-                    "detail":
-                    "Pesanan tidak ditemukan"
-                },
-                status=status.HTTP_404_NOT_FOUND
-            )
-        new_status = request.data.get(
-            "status"
-        )
-        valid_statuses = [
-            "pending",
-            "processed",
-            "shipped",
-            "completed",
-        ]
-        if new_status not in valid_statuses:
-            return Response(
-                {
-                    "detail":
-                    "Status tidak valid"
-                },
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        seller_order.status = new_status
-        seller_order.save()
-        return Response(
-            {
-                "message":
-                "Status berhasil diperbarui",
-                "status":
-                seller_order.status,
-            }
         )

@@ -18,6 +18,7 @@ urlpatterns = [
     path("api/cart/", include("carts.urls")),
     path('api/', include("orders.urls")),
     path("api/payments/", include("payments.urls")),
+    path("api/notifications/", include("notifications.urls")),
     path("api/wishlist/", include("wishlist.urls")),
     path("api/reviews/", include("reviews.urls")),
     path("api/seller/", include("dashboards.urls")),

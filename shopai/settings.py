@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'orders',
     'reviews',
     'payments',
+    "notifications",
     "corsheaders",
     "django_filters"
 ]

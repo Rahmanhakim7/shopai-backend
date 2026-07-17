@@ -57,13 +57,10 @@ class CreatePaymentAPIView(APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
         payment = order.payment
-        # Jika Snap Token sudah pernah dibuat,
-        # langsung gunakan yang lama.
         if payment.snap_token:
             return Response(
                 PaymentSerializer(payment).data
             )
-        # Buat transaksi ke Midtrans
         payment = create_snap_transaction(
             order,
             payment,

@@ -4,6 +4,9 @@ import midtransclient
 from django.conf import settings
 from .models import Payment
 from django.db import transaction
+from notifications.services import (
+    notify_payment_success,
+)
 
 snap = midtransclient.Snap(
     is_production=settings.MIDTRANS_IS_PRODUCTION,
@@ -98,6 +101,9 @@ def update_payment_status(transaction_id, transaction_status):
                             "status",
                         ]
                     )
+                notify_payment_success(
+                    seller_order
+                )
     elif transaction_status == "pending":
         payment.status = Payment.Status.PENDING
     elif transaction_status == "expire":
