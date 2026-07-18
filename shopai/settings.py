@@ -21,7 +21,7 @@ SECRET_KEY = config("SECRET_KEY")
 DEBUG = config("DEBUG", cast=bool, default=True)
 ALLOWED_HOSTS = config(
     "ALLOWED_HOSTS",
-    default="127.0.0.1,localhost,onstage-edge-cheer.ngrok-free.dev",
+    default="127.0.0.1,localhost,onstage-edge-cheer.ngrok-free.dev,shopai-api.onrender.com",
     cast=lambda v: [host.strip() for host in v.split(",")],
 )
 # Application definition
