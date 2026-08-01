@@ -5,7 +5,7 @@ from .serializers import (
     RegisterSerializer,
     CustomTokenObtainPairSerializer,
     ProfileSerializer,
-    ForgotPasswordSerializer,
+    ForgotPasswordSerializer,   
 )
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework.parsers import MultiPartParser, FormParser
@@ -109,14 +109,14 @@ def forgot_password(request):
     )
     subject = "Reset Password ShopAI"
     message = f"""
-Halo {user.username},
-Kami menerima permintaan untuk mereset password akun ShopAI Anda.
-Silakan klik link berikut:
-{reset_link}
-Jika Anda tidak meminta reset password, abaikan email ini.
-Terima kasih.
-Tim ShopAI
-"""
+    Halo {user.username},
+    Kami menerima permintaan untuk mereset password akun ShopAI Anda.
+    Silakan klik link berikut:
+    {reset_link}
+    Jika Anda tidak meminta reset password, abaikan email ini.
+    Terima kasih.
+    Tim ShopAI
+    """
     send_mail(
         subject,
         message,
@@ -146,7 +146,6 @@ def reset_password(request):
         user_id = force_str(
             urlsafe_base64_decode(uid)
         )
-
         user = User.objects.get(pk=user_id)
 
     except Exception:
@@ -192,6 +191,7 @@ def google_login(request):
             requests.Request(),
             settings.GOOGLE_CLIENT_ID,
         )
+        print(id_info)
         email = id_info["email"]
         name = id_info.get("name")
         picture = id_info.get("picture")
@@ -216,9 +216,13 @@ def google_login(request):
                 "user": serialize_user(user),
             }
         )
-    except ValueError:
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
         return Response(
-            {"message": "Google Token tidak valid"},
+            {
+                "message": str(e),
+            },
             status=400,
         )
 

@@ -41,7 +41,7 @@ def product_list(request):
         allowed_ordering.get(ordering, "-created_at")
     )
     paginator = PageNumberPagination()
-    paginator.page_size = 2
+    paginator.page_size = 4
     result_page = paginator.paginate_queryset(
         products,
         request
