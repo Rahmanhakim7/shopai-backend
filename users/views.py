@@ -5,7 +5,7 @@ from .serializers import (
     RegisterSerializer,
     CustomTokenObtainPairSerializer,
     ProfileSerializer,
-    ForgotPasswordSerializer,   
+    ForgotPasswordSerializer,    
 )
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework.parsers import MultiPartParser, FormParser

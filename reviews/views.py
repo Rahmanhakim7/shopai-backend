@@ -1,4 +1,8 @@
 from rest_framework.views import APIView
+from rest_framework.generics import ListAPIView
+from django.shortcuts import get_object_or_404
+
+from core.pagination import DefaultPagination
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
@@ -71,29 +75,18 @@ class CreateReviewAPIView(APIView):
             status=status.HTTP_400_BAD_REQUEST
         )
     
-class ProductReviewListAPIView(APIView):
-    def get(self, request, product_id):
-        try:
-            Product.objects.get(
-                id=product_id
-            )
-        except Product.DoesNotExist:
-            return Response(
-                {
-                    "message": "Produk tidak ditemukan"
-                },
-                status=status.HTTP_404_NOT_FOUND
-            )
-        reviews = Review.objects.filter(
-            product_id=product_id
-        ).select_related(
-            "buyer"
+class ProductReviewListAPIView(ListAPIView):
+    serializer_class = ReviewSerializer
+    pagination_class = DefaultPagination
+    def get_queryset(self):
+        get_object_or_404(
+            Product,
+            pk=self.kwargs["product_id"],
         )
-        serializer = ReviewSerializer(
-            reviews,
-            many=True
-        )
-        return Response(
-            serializer.data,
-            status=status.HTTP_200_OK
+        return (
+            Review.objects.filter(
+                product_id=self.kwargs["product_id"]
+            )
+            .select_related("buyer")
+            .order_by("-created_at")
         )

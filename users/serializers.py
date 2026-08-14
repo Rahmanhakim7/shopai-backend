@@ -17,23 +17,29 @@ class RegisterSerializer(serializers.ModelSerializer):
                 "write_only": True
             }
         }
-
     def validate_username(self, value):
         if User.objects.filter(username=value).exists():
             raise serializers.ValidationError(
                 "Username sudah digunakan"
             )
         return value
-
     def validate_email(self, value):
         if User.objects.filter(email=value).exists():
             raise serializers.ValidationError(
                 "Email sudah digunakan"
             )
         return value
-
+    def validate_role(self, value):
+        if value not in ["buyer", "seller"]:
+            raise serializers.ValidationError(
+                "Role hanya boleh buyer atau seller."
+            )
+        return value
     def create(self, validated_data):
-        profile_image = validated_data.pop("profile_image", None)
+        profile_image = validated_data.pop(
+            "profile_image",
+            None
+        )
         user = User.objects.create_user(
             username=validated_data["username"],
             email=validated_data["email"],

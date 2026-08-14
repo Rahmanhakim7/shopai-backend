@@ -11,9 +11,29 @@ class ProductSerializer(serializers.ModelSerializer):
     average_rating = serializers.SerializerMethodField()
     review_count = serializers.SerializerMethodField()
     wishlist_count = serializers.SerializerMethodField()
+    is_wishlisted = serializers.BooleanField(
+        read_only=True
+    )
+
     class Meta:
         model = Product
-        fields = "__all__"
+        fields = [
+            "id",
+            "seller",
+            "seller_name",
+            "name",
+            "description",
+            "price",
+            "stock",
+            "condition",
+            "image",
+            "status",
+            "created_at",
+            "average_rating",
+            "review_count",
+            "wishlist_count",
+            "is_wishlisted",
+        ]
         read_only_fields = ["seller"]
 
     def get_average_rating(self, obj):

@@ -3,28 +3,28 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from .models import Product
+from wishlist.models import Wishlist
 from .serializers import ProductSerializer
-from django.db.models import Q
+from django.db.models import Q, Exists, OuterRef
 from rest_framework.pagination import PageNumberPagination
 from core.pagination import DefaultPagination
 from utils.api_response import success_response
 from shopai.permissions import IsBuyer,IsSeller
 
 
-@api_view(['GET'])
+@api_view(["GET"])
 @permission_classes([IsAuthenticated, IsBuyer])
 def product_list(request):
     products = Product.objects.all()
     stock_filter = request.GET.get("stock_filter")
     condition = request.GET.get("condition")
-
     if stock_filter == "in_stock":
         products = products.filter(stock__gt=0)
     elif stock_filter == "out_of_stock":
         products = products.filter(stock=0)
     if condition:
         products = products.filter(condition=condition)
-    search = request.GET.get('search')
+    search = request.GET.get("search")
     if search:
         products = products.filter(
             Q(name__icontains=search)
@@ -40,25 +40,35 @@ def product_list(request):
     products = products.order_by(
         allowed_ordering.get(ordering, "-created_at")
     )
+    products = products.annotate(
+        is_wishlisted=Exists(
+            Wishlist.objects.filter(
+                user=request.user,
+                product_id=OuterRef("pk"),
+            )
+        )
+    )
     paginator = PageNumberPagination()
     paginator.page_size = 4
+    paginator.page_size_query_param = "page_size"
+    paginator.max_page_size = 16
     result_page = paginator.paginate_queryset(
         products,
-        request
+        request,
     )
     serializer = ProductSerializer(
         result_page,
-        many=True
+        many=True,
     )
     paginated_data = {
         "count": paginator.page.paginator.count,
         "next": paginator.get_next_link(),
         "previous": paginator.get_previous_link(),
-        "results": serializer.data
+        "results": serializer.data,
     }
     return success_response(
         data=paginated_data,
-        message="Products fetched successfully"
+        message="Products fetched successfully",
     )
 
 @api_view(["GET"])

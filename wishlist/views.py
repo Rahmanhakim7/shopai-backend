@@ -3,10 +3,12 @@ from rest_framework.decorators import (
     api_view,
     permission_classes
 )
+from rest_framework import generics
 from rest_framework.permissions import (
     IsAuthenticated
 )
 from rest_framework.response import Response
+from core.pagination import WishlistPagination
 from products.models import Product
 from .models import Wishlist
 from .serializers import (
@@ -15,20 +17,20 @@ from .serializers import (
 )
 from shopai.permissions import IsBuyer
 
-@api_view(["GET"])
-@permission_classes([IsAuthenticated, IsBuyer])
-def get_wishlist(request):
-    wishlists = Wishlist.objects.filter(
-        user=request.user
-    ).select_related(
-        "product",
-        "product__seller"
-    )
-    serializer = WishlistSerializer(
-        wishlists,
-        many=True
-    )
-    return Response(serializer.data)
+class WishlistListView(generics.ListAPIView):
+    serializer_class = WishlistSerializer
+    permission_classes = [IsAuthenticated, IsBuyer]
+    pagination_class = WishlistPagination
+
+    def get_queryset(self):
+        return (
+            Wishlist.objects.filter(user=self.request.user)
+            .select_related(
+                "product",
+                "product__seller",
+            )
+            .order_by("-id")
+        )
 
 @api_view(["POST"])
 @permission_classes([IsAuthenticated, IsBuyer])
