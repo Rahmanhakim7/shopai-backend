@@ -6,16 +6,19 @@ from .serializers import (
     CustomTokenObtainPairSerializer,
     ProfileSerializer,
     ForgotPasswordSerializer,    
+    AdminUserSerializer,
 )
+from django.db.models import Q
+from core.pagination import AdminUsersPagination
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework.parsers import MultiPartParser, FormParser
-from django.conf import settings
 from google.oauth2 import id_token
 from google.auth.transport import requests
 from django.core.files.base import ContentFile
 import requests as http_requests
 from urllib.parse import urlparse
 import os
+from rest_framework import status
 from .models import User
 from rest_framework_simplejwt.tokens import RefreshToken
 import traceback
@@ -39,6 +42,7 @@ def serialize_user(user):
             else None
         ),
     }
+
 
 @api_view(["POST"])
 @parser_classes([MultiPartParser, FormParser])
@@ -301,3 +305,91 @@ def google_register(request):
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def admin_users(request):
+    if request.user.role != "admin":
+        return Response(
+            {
+                "message": "Anda tidak memiliki akses ke halaman admin."
+            },
+            status=status.HTTP_403_FORBIDDEN,
+        )
+    search = request.GET.get("search", "").strip()
+    users = User.objects.filter(
+        role__in=["buyer", "seller"]
+    ).order_by("-date_joined")
+    if search:
+        users = users.filter(
+            Q(username__icontains=search)
+            | Q(email__icontains=search)
+            | Q(first_name__icontains=search)
+            | Q(last_name__icontains=search)
+        )
+    paginator = AdminUsersPagination()
+    page = paginator.paginate_queryset(users, request)
+    serializer = AdminUserSerializer(page, many=True)
+    return paginator.get_paginated_response(serializer.data)
+
+@api_view(["PATCH"])
+@permission_classes([IsAuthenticated])
+def admin_deactivate_user(request, user_id):
+    if request.user.role != "admin":
+        return Response(
+            {
+                "message": "Anda tidak memiliki akses ke halaman admin."
+            },
+            status=status.HTTP_403_FORBIDDEN,
+        )
+    try:
+        user = User.objects.get(
+            id=user_id,
+            role__in=["buyer", "seller"],
+        )
+    except User.DoesNotExist:
+        return Response(
+            {
+                "message": "Pengguna tidak ditemukan."
+            },
+            status=status.HTTP_404_NOT_FOUND,
+        )
+    user.is_active = False
+    user.save(update_fields=["is_active"])
+    return Response(
+        {
+            "message": "Pengguna berhasil dinonaktifkan."
+        },
+        status=status.HTTP_200_OK,
+    )
+
+@api_view(["PATCH"])
+@permission_classes([IsAuthenticated])
+def admin_activate_user(request, user_id):
+    if request.user.role != "admin":
+        return Response(
+            {
+                "message": "Anda tidak memiliki akses ke halaman admin."
+            },
+            status=status.HTTP_403_FORBIDDEN,
+        )
+    try:
+        user = User.objects.get(
+            id=user_id,
+            role__in=["buyer", "seller"],
+        )
+    except User.DoesNotExist:
+        return Response(
+            {
+                "message": "Pengguna tidak ditemukan."
+            },
+            status=status.HTTP_404_NOT_FOUND,
+        )
+    user.is_active = True
+    user.save(update_fields=["is_active"])
+    return Response(
+        {
+            "message": "Pengguna berhasil diaktifkan."
+        },
+        status=status.HTTP_200_OK,
+    )

@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'reviews',
     'payments',
     "notifications",
+    "adminpanel",
     "corsheaders",
     "django_filters",
     "django_cleanup.apps.CleanupConfig",

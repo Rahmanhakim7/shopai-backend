@@ -1,7 +1,8 @@
 
 from django.urls import path
 from .views import (
-    register, CustomTokenObtainPairView, profile, google_login, google_register, forgot_password, reset_password
+    register, CustomTokenObtainPairView, profile, google_login, google_register, forgot_password, reset_password, admin_users, admin_deactivate_user,
+    admin_activate_user
 )
 
 urlpatterns = [
@@ -35,5 +36,16 @@ urlpatterns = [
         "reset-password/",
         reset_password,
         name="reset_password",
+    ),
+    path("admin/users/", admin_users, name="admin-users"),
+    path(
+        "admin/users/<int:user_id>/deactivate/",
+        admin_deactivate_user,
+        name="admin-deactivate-user",
+    ),
+    path(
+        "admin/users/<int:user_id>/activate/",
+        admin_activate_user,
+        name="admin-activate-user",
     ),
 ]

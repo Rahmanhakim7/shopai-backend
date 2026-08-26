@@ -109,3 +109,23 @@ class ProfileSerializer(serializers.ModelSerializer):
 
 class ForgotPasswordSerializer(serializers.Serializer):
     email = serializers.EmailField()
+
+class AdminUserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = [
+            "id",
+            "username",
+            "email",
+            "role",
+            "is_active",
+            "date_joined",
+        ]
+        read_only_fields = [
+            "id",
+            "username",
+            "email",
+            "role",
+            "is_active",
+            "date_joined",
+        ]

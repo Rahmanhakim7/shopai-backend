@@ -8,7 +8,7 @@ from rest_framework_simplejwt.views import (
     TokenRefreshView,
 )
 def home(request):
-    return HttpResponse("Welcome to ShopAI 🚀")
+    return HttpResponse("Welcome to ShopAI")
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('products.urls')),
@@ -22,6 +22,7 @@ urlpatterns = [
     path("api/wishlist/", include("wishlist.urls")),
     path("api/reviews/", include("reviews.urls")),
     path("api/seller/", include("dashboards.urls")),
+    path("api/admin/", include("adminpanel.urls")),
     path('', home),
 ]
 

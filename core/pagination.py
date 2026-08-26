@@ -7,3 +7,6 @@ class DefaultPagination(PageNumberPagination):
 
 class WishlistPagination(DefaultPagination):
     page_size = 8
+
+class AdminUsersPagination(DefaultPagination):
+    page_size = 6
