@@ -50,7 +50,7 @@ class RegisterSerializer(serializers.ModelSerializer):
             user.profile_image = profile_image
             user.save()
         return user
-    
+
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
         data = super().validate(attrs)

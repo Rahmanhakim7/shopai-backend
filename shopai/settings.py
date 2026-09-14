@@ -27,6 +27,7 @@ ALLOWED_HOSTS = config(
 # Application definition
 INSTALLED_APPS = [
     'django.contrib.admin',
+    "cloudinary",
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
@@ -46,6 +47,14 @@ INSTALLED_APPS = [
     "django_filters",
     "django_cleanup.apps.CleanupConfig",
 ]
+
+import cloudinary
+
+cloudinary.config(
+    cloud_name=config("CLOUDINARY_CLOUD_NAME"),
+    api_key=config("CLOUDINARY_API_KEY"),
+    api_secret=config("CLOUDINARY_API_SECRET"),
+)
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',

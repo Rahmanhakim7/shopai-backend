@@ -71,18 +71,7 @@ def profile(request):
         partial=True
     )
     if serializer.is_valid():
-        old_image = None
-        if (
-            "profile_image" in request.FILES
-            and request.user.profile_image
-        ):
-            old_image = request.user.profile_image.path
         serializer.save()
-        if old_image and os.path.isfile(old_image):
-            try:
-                os.remove(old_image)
-            except Exception:
-                pass
         return Response({
             "message": "Profile berhasil diperbarui",
             "data": serializer.data
@@ -91,7 +80,6 @@ def profile(request):
         serializer.errors,
         status=status.HTTP_400_BAD_REQUEST
     )
-
 
 @api_view(["POST"])
 def forgot_password(request):
