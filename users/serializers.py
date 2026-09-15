@@ -68,6 +68,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         }
         return data
 class ProfileSerializer(serializers.ModelSerializer):
+    profile_image = serializers.SerializerMethodField()
     class Meta:
         model = User
         fields = [
@@ -81,6 +82,12 @@ class ProfileSerializer(serializers.ModelSerializer):
             "email",
             "role",
         ]
+
+    def get_profile_image(self, obj):
+        if obj.profile_image:
+            return obj.profile_image.url
+        return None
+
     def validate_username(self, value):
         user = self.instance
         if User.objects.exclude(pk=user.pk).filter(username=value).exists():
