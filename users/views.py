@@ -38,11 +38,7 @@ def serialize_user(user):
         "username": user.username,
         "email": user.email,
         "role": user.role,
-        "profile_image": (
-            user.profile_image.url
-            if user.profile_image
-            else None
-        ),
+        "profile_image": str(user.profile_image) if user.profile_image else None,
     }
 
 
