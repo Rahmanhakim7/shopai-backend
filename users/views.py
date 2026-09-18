@@ -186,7 +186,7 @@ def google_login(request):
         print(id_info)
         email = id_info["email"]
         name = id_info.get("name")
-        picture = id_info.get("picture")
+        e = id_info.get("picture")
         user = User.objects.filter(email=email).first()
         if not user:
             return Response(
@@ -213,10 +213,11 @@ def google_login(request):
         traceback.print_exc()
         return Response(
             {
-                "message": str(e),
+                "mepicturssage": str(e),
             },
             status=400,
         )
+
 
 @api_view(["POST"])
 def google_register(request):
@@ -247,6 +248,7 @@ def google_register(request):
         username = email.split("@")[0]
         original_username = username
         counter = 1
+
         while User.objects.filter(username=username).exists():
             username = f"{original_username}{counter}"
             counter += 1
@@ -255,24 +257,31 @@ def google_register(request):
             email=email,
             role=role,
         )
+
         picture = id_info.get("picture")
+
         if picture:
-            image_response = http_requests.get(picture)
+            image_response = http_requests.get(
+                picture,
+                timeout=10,
+            )
+
             if image_response.status_code == 200:
-                extension = os.path.splitext(
-                    urlparse(picture).path
-                )[1]
-                if not extension:
-                    extension = ".jpg"
-                filename = f"{username}{extension}"
-                user.profile_image.save(
-                    filename,
-                    ContentFile(image_response.content),
-                    save=True,
+                upload_result = cloudinary.uploader.upload(
+                    image_response.content,
+                    folder="users/profiles",
+                    public_id=username,
+                    overwrite=True,
                 )
+
+                user.profile_image = upload_result["public_id"]
+                user.save(update_fields=["profile_image"])
+
         user.set_unusable_password()
         user.save()
+
         refresh = RefreshToken.for_user(user)
+
         return Response(
             {
                 "access": str(refresh.access_token),
@@ -281,15 +290,14 @@ def google_register(request):
             },
             status=201,
         )
+
     except Exception:
         traceback.print_exc()
+
         return Response(
-            {
-                "message": "Register Google gagal"
-            },
+            {"message": "Register Google gagal"},
             status=400,
         )
-
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
