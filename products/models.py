@@ -1,4 +1,5 @@
 from django.db import models
+from cloudinary.models import CloudinaryField
 from users.models import User
 class Product(models.Model):
     STATUS_CHOICES = (
@@ -24,8 +25,9 @@ class Product(models.Model):
         choices=CONDITION_CHOICES,
         default='new'
     )
-    image = models.ImageField(
-        upload_to='products/',
+    image = CloudinaryField(
+        'image',
+        folder='products/',
         blank=True,
         null=True
     )

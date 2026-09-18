@@ -5,7 +5,7 @@ from .serializers import (
     RegisterSerializer,
     CustomTokenObtainPairSerializer,
     ProfileSerializer,
-    ForgotPasswordSerializer,    
+    ForgotPasswordSerializer,
     AdminUserSerializer,
 )
 from django.db.models import Q
