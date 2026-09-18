@@ -18,6 +18,8 @@ from django.core.files.base import ContentFile
 import requests as http_requests
 from urllib.parse import urlparse
 import os
+import cloudinary
+import cloudinary.uploader
 from rest_framework import status
 from .models import User
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -186,7 +188,7 @@ def google_login(request):
         print(id_info)
         email = id_info["email"]
         name = id_info.get("name")
-        e = id_info.get("picture")
+        picture = id_info.get("picture")
         user = User.objects.filter(email=email).first()
         if not user:
             return Response(
@@ -213,7 +215,7 @@ def google_login(request):
         traceback.print_exc()
         return Response(
             {
-                "mepicturssage": str(e),
+                "message": str(e),
             },
             status=400,
         )
