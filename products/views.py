@@ -173,8 +173,16 @@ def seller_product_detail(request, pk):
             "errors": serializer.errors
         }, status=400)
     if request.method == 'DELETE':
-        product.delete()
-        return Response({
-            "message": "Data Berhasil Di Hapus",
-            "status": "success"
-        }, status=200)
+        try:
+            product.delete()
+            return Response({
+                "message": "Data Berhasil Di Hapus",
+                "status": "success"
+            }, status=200)
+        except Exception as e:
+            return Response({
+                "message": "Gagal menghapus product",
+                "status": "error",
+                "error": str(e),
+                "type": type(e).__name__,
+            }, status=500)
