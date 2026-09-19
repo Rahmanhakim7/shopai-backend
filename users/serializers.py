@@ -67,8 +67,12 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
             ),
         }
         return data
+
 class ProfileSerializer(serializers.ModelSerializer):
-    profile_image = serializers.SerializerMethodField()
+    profile_image = serializers.ImageField(
+        required=False,
+        allow_null=True
+    )
     class Meta:
         model = User
         fields = [
@@ -82,12 +86,6 @@ class ProfileSerializer(serializers.ModelSerializer):
             "email",
             "role",
         ]
-
-    def get_profile_image(self, obj):
-        if obj.profile_image:
-            return obj.profile_image.url
-        return None
-
     def validate_username(self, value):
         user = self.instance
         if User.objects.exclude(pk=user.pk).filter(username=value).exists():
@@ -95,7 +93,6 @@ class ProfileSerializer(serializers.ModelSerializer):
                 "Username sudah digunakan."
             )
         return value
-
     def validate_profile_image(self, value):
         if value:
             if value.size > 2 * 1024 * 1024:
@@ -113,7 +110,6 @@ class ProfileSerializer(serializers.ModelSerializer):
                     "Format gambar harus JPG, JPEG, PNG atau WEBP."
                 )
         return value
-
 class ForgotPasswordSerializer(serializers.Serializer):
     email = serializers.EmailField()
 
