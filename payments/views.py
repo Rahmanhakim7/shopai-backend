@@ -73,25 +73,27 @@ class CreatePaymentAPIView(APIView):
 class PaymentNotificationAPIView(APIView):
     authentication_classes = []
     permission_classes = []
+
     def post(self, request):
-        order_id = request.data.get(
-            "order_id"
-        )
-        status_code = request.data.get(
-            "status_code"
-        )
-        gross_amount = request.data.get(
-            "gross_amount"
-        )
-        signature_key = request.data.get(
-            "signature_key"
-        )
-        transaction_status = request.data.get(
-            "transaction_status"
-        )
-        transaction_id = request.data.get(
-            "order_id"
-        )
+        order_id = request.data.get("order_id")
+        status_code = request.data.get("status_code")
+        gross_amount = request.data.get("gross_amount")
+        signature_key = request.data.get("signature_key")
+        transaction_status = request.data.get("transaction_status")
+
+        if not all([
+            order_id,
+            status_code,
+            gross_amount,
+            signature_key,
+            transaction_status,
+        ]):
+            return Response(
+                {
+                    "detail": "Data notification tidak lengkap."
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         if not verify_signature(
             order_id,
@@ -105,12 +107,12 @@ class PaymentNotificationAPIView(APIView):
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        
+
         payment = update_payment_status(
-            transaction_id,
+            order_id,
             transaction_status,
         )
-        
+
         if payment is None:
             return Response(
                 {
@@ -118,11 +120,10 @@ class PaymentNotificationAPIView(APIView):
                 },
                 status=status.HTTP_404_NOT_FOUND,
             )
+
         return Response(
             {
                 "message": "Status pembayaran diperbarui"
-            }
+            },
+            status=status.HTTP_200_OK,
         )
-    
-
-    
